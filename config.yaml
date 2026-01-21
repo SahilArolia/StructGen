@@ -1,0 +1,59 @@
+# StructGAN Training Configuration
+# =================================
+# This is the main configuration file for training.
+# Modify these values to customize your training run.
+
+# Experiment Settings
+name: structgan_baseline
+seed: 42
+
+# Data Settings
+dataroot: ./StructGAN_v1/0_datasets/Group7-H2
+image_size: 256
+batch_size: 4
+num_workers: 4
+
+# Generator Architecture
+input_nc: 3           # Input channels (RGB)
+output_nc: 3          # Output channels (RGB)
+ngf: 64               # Generator base filters
+netG: global          # 'global' for 256px, 'local' for 512px+
+n_downsample_global: 4
+n_blocks_global: 9
+norm: instance        # instance, batch, or none
+
+# Discriminator Architecture
+ndf: 64               # Discriminator base filters
+netD: multiscale
+num_D: 3              # Number of discriminators (multi-scale)
+n_layers_D: 3
+
+# Training Schedule
+niter: 100            # Epochs at initial learning rate
+niter_decay: 100      # Epochs with linear LR decay
+lr: 0.0002            # Learning rate
+beta1: 0.5            # Adam beta1
+beta2: 0.999          # Adam beta2
+
+# Loss Weights
+lambda_feat: 10.0     # Feature matching loss
+lambda_vgg: 10.0      # VGG perceptual loss
+lambda_l1: 100.0      # L1 reconstruction loss
+
+# Checkpoints
+checkpoints_dir: ./models/checkpoints
+save_epoch_freq: 10   # Save checkpoint every N epochs
+save_latest_freq: 1000
+
+# Logging
+print_freq: 100       # Print loss every N iterations
+display_freq: 500     # Display images every N iterations
+tensorboard: true
+
+# Hardware
+gpu_ids: [0]
+fp16: false           # Mixed precision training
+
+# Resume Training (set to true to continue from checkpoint)
+continue_train: false
+which_epoch: latest
