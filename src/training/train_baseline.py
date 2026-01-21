@@ -191,25 +191,27 @@ def train_one_epoch(
         input_img = input_img.to(device)
         target_img = target_img.to(device)
 
-        # Ground truth labels
-        valid = torch.ones((input_img.size(0), 1, 16, 16), device=device)
-        fake = torch.zeros((input_img.size(0), 1, 16, 16), device=device)
-
         # -----------------
         # Train Generator
         # -----------------
         optimizer_G.zero_grad()
 
-        # Generate fake image
+        # 1. Generate fake image
         fake_img = generator(input_img)
 
-        # GAN loss
+        # 2. Get discriminator prediction on fake image
+        # This fixes the NameError: we use 'fake_img' and 'input_img' which are defined
         pred_fake = discriminator(fake_img, input_img)
+
+        # 3. Create ground truth labels dynamically
+        # This fixes the Shape Mismatch: 'valid' and 'fake' automatically match pred_fake's shape (e.g., 15x15)
+        valid = torch.ones_like(pred_fake, device=device)
+        fake = torch.zeros_like(pred_fake, device=device)
+
+        # 4. Calculate Generator Loss
         loss_GAN = criterion_GAN(pred_fake, valid)
-
-        # Pixel-wise loss
         loss_pixel = criterion_pixelwise(fake_img, target_img)
-
+        
         # Total generator loss
         loss_G = loss_GAN + config.lambda_l1 * loss_pixel
 
@@ -221,15 +223,16 @@ def train_one_epoch(
         # ---------------------
         optimizer_D.zero_grad()
 
-        # Real loss
+        # 1. Real loss (Real Target + Input)
         pred_real = discriminator(target_img, input_img)
         loss_real = criterion_GAN(pred_real, valid)
 
-        # Fake loss
-        pred_fake = discriminator(fake_img.detach(), input_img)
-        loss_fake = criterion_GAN(pred_fake, fake)
+        # 2. Fake loss (Generated Image + Input)
+        # We must detach fake_img to avoid calculating gradients for the Generator here
+        pred_fake_d = discriminator(fake_img.detach(), input_img)
+        loss_fake = criterion_GAN(pred_fake_d, fake)
 
-        # Total discriminator loss
+        # 3. Total discriminator loss
         loss_D = 0.5 * (loss_real + loss_fake)
 
         loss_D.backward()

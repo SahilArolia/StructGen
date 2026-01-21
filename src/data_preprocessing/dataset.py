@@ -57,72 +57,64 @@ class StructGANDataset(Dataset):
     def _load_image_paths(self) -> List[Path]:
         """Load all image paths from the dataset directory."""
         paths = []
-
-        # Check for split-specific subdirectory
-        split_dir = self.root_dir / self.split
-        if split_dir.exists():
+        
+        # Check for different directory formats
+        split_dir = self.root_dir / self.split  # e.g., root/train
+        split_dir_A = self.root_dir / f"{self.split}_A"  # e.g., root/train_A
+        split_dir_B = self.root_dir / f"{self.split}_B"  # e.g., root/train_B
+        
+        if split_dir_A.exists() and split_dir_B.exists():
+             # Pix2pix format detected
+            search_dir = split_dir_A
+            self.paired_format = "pix2pix"
+            self.target_dir = split_dir_B
+        elif split_dir.exists():
             search_dir = split_dir
         else:
             search_dir = self.root_dir
-
+            
         # Support multiple image formats
         extensions = ['*.png', '*.jpg', '*.jpeg', '*.PNG', '*.JPG', '*.JPEG']
-
-        if self.paired_format == "side_by_side":
-            for ext in extensions:
-                paths.extend(search_dir.glob(ext))
-        else:
-            # Separate format: look in input folder
-            input_dir = search_dir / "input"
-            if input_dir.exists():
-                for ext in extensions:
-                    paths.extend(input_dir.glob(ext))
-
+    
+        for ext in extensions:
+            paths.extend(search_dir.glob(ext))
+    
         return sorted(paths)
 
     def __len__(self) -> int:
         return len(self.image_paths)
 
     def __getitem__(self, idx: int) -> Tuple[torch.Tensor, torch.Tensor]:
-        """
-        Returns:
-            input_tensor: Architectural floor plan [C, H, W]
-            target_tensor: Structural layout [C, H, W]
-        """
         if self.paired_format == "side_by_side":
             return self._load_side_by_side(idx)
+        elif self.paired_format == "pix2pix":
+            return self._load_pix2pix(idx)
         else:
             return self._load_separate(idx)
-
-    def _load_side_by_side(self, idx: int) -> Tuple[torch.Tensor, torch.Tensor]:
-        """Load paired image in side-by-side format."""
-        img_path = self.image_paths[idx]
-
-        # Load combined image
-        combined = Image.open(img_path).convert('RGB')
-        w, h = combined.size
-
-        # Split into input (left) and target (right)
-        input_img = combined.crop((0, 0, w // 2, h))
-        target_img = combined.crop((w // 2, 0, w, h))
-
-        # Resize
+    
+    def _load_pix2pix(self, idx: int) -> Tuple[torch.Tensor, torch.Tensor]:
+        """Load paired images from pix2pix format (train_A/train_B)."""
+        input_path = self.image_paths[idx]
+        target_path = self.target_dir / input_path.name
+      
+        if not target_path.exists():
+            raise FileNotFoundError(f"Target image not found: {target_path}")
+    
+        input_img = Image.open(input_path).convert('RGB')
+        target_img = Image.open(target_path).convert('RGB')
+    
         input_img = input_img.resize((self.image_size, self.image_size), Image.BILINEAR)
         target_img = target_img.resize((self.image_size, self.image_size), Image.BILINEAR)
-
-        # Apply transforms
+    
         if self.transform:
             input_img, target_img = self.transform(input_img, target_img)
         else:
-            # Default transform to tensor
             to_tensor = transforms.ToTensor()
             input_img = to_tensor(input_img)
             target_img = to_tensor(target_img)
-
-            # Normalize to [-1, 1]
             input_img = input_img * 2 - 1
             target_img = target_img * 2 - 1
-
+    
         return input_img, target_img
 
     def _load_separate(self, idx: int) -> Tuple[torch.Tensor, torch.Tensor]:
