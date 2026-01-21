@@ -1,0 +1,64 @@
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Virtual environments
+venv/
+env/
+.env
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Jupyter Notebook
+.ipynb_checkpoints/
+*.ipynb_checkpoints
+
+# Data (large files - download separately)
+data/structgan_original/
+data/rplan_processed/
+data/augmented/
+*.zip
+*.tar.gz
+*.tar
+
+# Model checkpoints (large files)
+models/checkpoints/*/
+*.pth
+*.pt
+*.ckpt
+
+# StructGAN repository (clone separately)
+StructGAN_v1/
+
+# Logs
+logs/
+*.log
+tensorboard/
+
+# Output images
+output/
+results/
+*.png
+*.jpg
+*.jpeg
+!docs/*.png
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Temporary files
+tmp/
+temp/
+*.tmp
+
+# pytest
+.pytest_cache/
+.coverage
+htmlcov/
